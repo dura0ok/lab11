@@ -1,34 +1,62 @@
-import runtime;
 import lingo/pegcode/driver;
-import maybe;
 import string;
 
-varDecl(name: Var, value: nemoType);
-nemoType ::= intType, arrayType;
-intType();
-arrayType(type :string);
+VarDecl(var: Var, type: NemoType);
+NemoType ::= IntType, ArrayType, NoneType;
+IntType();
+ArrayType(type: NemoType);
+NoneType(); 
 
-ArExpr ::= IntConst, Mul, Div, Add, Sub, Neg, Var;
-Mul(left : ArExpr, right : ArExpr);
-Div(left : ArExpr, right : ArExpr);
-Add(left : ArExpr, right : ArExpr);
-Sub(left : ArExpr, right : ArExpr);
-Neg(arg : ArExpr);
+Expr ::= Const, Var, ArithmeticExpr;
+ArithmeticExpr ::= Add, Mul, Div, Sub, Neg;
+Const ::= IntConst;
+
+
+Array(elements: [Expr]);
+Mul(left : Expr, right : Expr);
+Div(left : Expr, right : Expr);
+Add(left : Expr, right : Expr);
+Sub(left : Expr, right : Expr);
+Neg(arg : Expr);
 IntConst(value : int);
 Var(name : string);
+
+Print(e: Expr);
+UpdOperator(arr: Array, index: Expr, val: Expr);
+AppOperator(arr: Array, val: Expr);
+LengthOperator(arr: Array);
+ConcatOperator(arr1: Array, arr2: Array);
+
+Cond ::= Or, And, Not, Comparison;
+Or(c1 : Cond, c2 : Cond);
+And(c1 : Cond, c2 : Cond);
+Not(c : Cond);
+Comparison(e1: Expr, e2: Expr, cmpType: CmpOperator);
+
+CmpOperator ::= LessOperator, LessEqualOperator;
+LessOperator();
+LessEqualOperator();
 
 HighPrior ::= ToMul, ToDiv;
 LowPrior ::= ToAdd, ToSub;
 
-ToMul(arg : ArExpr);
-ToDiv(arg : ArExpr);
-ToAdd(arg : ArExpr);
-ToSub(arg : ArExpr);
+ToMul(arg : Expr);
+ToDiv(arg : Expr);
+ToAdd(arg : Expr);
+ToSub(arg : Expr);
+
+Program(varDeclList: [VarDecl], body: Body);
+BodiesSeq(bodies: [Body]);
+Body ::= Assignment, BodiesSeq, NonDeterministicChoice, Test;
+Test(c : Cond);
+NonDeterministicIteration(body: Body);
+NonDeterministicChoice(bodies: [Body]);
+Assignment(varName: Var, e: Expr);
 
 grammarOp = compilePegGrammar("#include nemo.lingo");
 
 specialPegActions = {
-    pairs = [Pair("buildHigh", buildHigh), Pair("buildLow", buildLow)];
+    pairs = [Pair("buildHigh", buildHigh), Pair("buildLow", buildLow), Pair("buildChoice", buildChoice)];
     t = setTreeValues(defaultPegActions.t, pairs);
     SemanticActions(t);
 }
@@ -48,15 +76,108 @@ buildLow(arr : [flow]) {
     })
 }
 
+buildChoice(arr : [flow]) {
+    NonDeterministicChoice(concat([arr[0]], arr[1]));
+}
 
-parse(src : string) -> flow {
+parse(src : string) -> Program {
     parsic(grammarOp, src, specialPegActions);
 }
 
+ValidateMessage(error: bool, msg: string);
+
+validate(parsed: Program) -> ValidateMessage{
+     vars: Tree<string, int> = fold(parsed.varDeclList, makeTree(), \acc, v -> {
+        old = lookupTreeDef(acc, v.var.name, 0);
+        setTree(acc, v.var.name, old+1);
+    });
+    foldTree(vars, ValidateMessage(false, "success"), \k, v, acc -> {
+        if(acc.error){
+            acc;
+        }else{
+            if(v > 1){
+                ValidateMessage(true, "error redeclaration " + k);
+            }else{
+                acc;
+            }
+        }
+    });
+}
+
+findVarType(decls: [VarDecl], var: Var) {
+    eitherMap(
+        find(decls, \el -> el.var == var),
+        \decl -> decl.type,
+        NoneType()
+    );
+}
+
+getExprType(decls: [VarDecl], e: Expr) -> NemoType{
+    switch (e: Expr) {
+        IntConst(v):{
+            IntType();
+        }
+
+        Var(v):{
+            findVarType(decls, e);
+        }
+
+        ArithmeticExpr():{
+            IntType();
+        }
+    }
+}
+
+findFirstError(messages: [ValidateMessage]) -> ValidateMessage{
+    fold(messages, ValidateMessage(false, "success"), \acc, el -> {
+        if(acc.error){
+            acc;
+        }else{
+            if(el.error){
+                el;
+            }else{
+                acc;
+            }
+        }
+    }); 
+
+}
+
+validateTypes(decls: [VarDecl], b: Body) -> ValidateMessage{
+    println(decls);
+    println(b);
+    println(findVarType(decls, Var("x")));
+    switch (b : Body) {
+        Assignment(name, expr): {
+            println("=========");
+            println(name);
+            println("=========");
+            if(findVarType(decls, name) == getExprType(decls, expr)){
+                ValidateMessage(false, "success!!");
+            }else{
+                ValidateMessage(true, "error!");
+            }
+        }
+        BodiesSeq(bodies): {
+            results = map(bodies, \el -> validateTypes(decls, el));
+            findFirstError(results);
+        }
+        default: {
+            ValidateMessage(false, "success!!!!!!");
+        }
+    }
+}
 
 main() {
-    t1 = parse("kek := 1+3;");
-    println(t1);
+    t1 = parse("
+                VAR y: INT;
+                VAR x : [INT];
+                x := 4; 
+                y := UPD([1, 2], y, 5);
+    ");
+    //println(validate(t1));
+    // println(t1.body);
+    println(validateTypes(t1.varDeclList, t1.body));
     if (t1 == flow("PARSING FAILED")) { quit(1); }  
     quit(0);
 }

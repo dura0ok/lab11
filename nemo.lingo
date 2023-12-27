@@ -1,42 +1,44 @@
-programm = ws varDecl*:d ws body*:a ws { Programm(:d, :a) };
-body = assignment:a {:a} | test:a {:a} | subsequenceBody:a {:a} | nonDetermenisticChoice:a {:a} | iterExec:a {:a};
-subsequenceBody = "{" (body ";")* "}";
-iterExec = ws "{" ws body:a ws "}" ws "*" ws { IterExec(:a) };
+programm = ws varDecl*:d ws body:a ws { Program(:d, :a) };
+// programm = body:a ws { Program(:d, :a) };
+body = statement;
+statement = (ws alternative:a ws ';' {:a})*:as {BodiesSeq(:as)};
+alternative = bodyTerm:first nonDetermenisticChoice:other {buildChoice(:first, :other)};
+bodyTerm = assignment:a {:a} | print | test:t {:t} | nonDeterministicIteration:i {:i} | ws '{' ws statement:s ws '}' ws {:s};
+print = "PRINT" ws "("ws expr:e ws ")" ws {Print(:e)};
+assignment = var:v ws ":=" ws expr:e ws {Assignment(:v, :e)};
 
-assignment = var:v ":=" expr:e {debug(assignment(:v, :e))};
-
-nonDetermenisticChoice = body:first ("U" body:other)* {consArray(:first, :other)};
-nonDeterministicIteration = "{" body:iter "}*" {NonDeterministicIteration(:iter)};
-
-test = "(" cond ")?";
+nonDetermenisticChoice = ws (ws "U" ws bodyTerm:b ws {:b})*:bs ws {:bs};
+nonDeterministicIteration = ws "{" ws body:iter ws "}" ws "*" ws {NonDeterministicIteration(:iter)};
+test = ws "(" ws cond:c  ws ")" ws "?" ws {Test(:c)};
 
 cond = or;
-or = and:a "||" or:b | and;
-and = not:a "&&" and:b | not;
-not = "!" comp:c | comp:c;
-comp = expr comparison expr | "(" cond ")";
+or = and:a ws "||" ws or:b ws {Or(:a, :b)} | ws and:a ws {:a};
+and = not:a ws "&&" ws and:b ws {And(:a, :b)} | ws not:n ws {:n};
+not = ws "!" ws comp:c ws {Not(:c)} | ws comp:c ws {:c};
+comp = ws expr:e1 ws comparisonType:t ws expr:e2 ws  {Comparison(:e1, :e2, :t)} | ws "(" ws cond:c ws ")" ws {:c};
 
-comparison = greater | greaterEqual | less | lessEqual | eq | neq;
+comparisonType = greaterEqual | greater | lessEqual | less | eq | neq;
 
-greater = ">" {greaterOperator()};
-greaterEqual = ">=" {greaterEqualOperator()};
-less = "<" {lessOperator()};
-lessEqual = "<=" {lessEqualOperator()};
-eq = "=" {equalOperator()};
-neq = "!=" {neqOperator()};
+greater = ">" {GreaterOperator()};
+greaterEqual = ">=" {GreaterEqualOperator()};
+less = "<" {LessOperator()};
+lessEqual = "<=" {LessEqualOperator()};
+eq = "=" {EqualOperator()};
+neq = "!=" {NeqOperator()};
 
 expr = arrExpr | lowPrior | arrayOperation;
 
-arrayOperation = appOperation | updOperation;
+arrayOperation = appOperation | updOperation | lengthOperation | concatOperation;
 
-appOperation = "APP(" expr:arr comma expr:val ")" {appOperator(:arr, :val)};
-updOperation = "UPD(" expr:arr comma expr:ind comma expr:val ")" {updOperator(:arr, :ind, :val)};
+appOperation = "APP" ws "(" ws expr:arr ws comma ws expr:val ws ")" ws {AppOperator(:arr, :val)};
+updOperation = "UPD" ws "(" ws expr:arr ws comma ws expr:ind ws comma ws expr:val ws ")" ws {UpdOperator(:arr, :ind, :val)};
+lengthOperation =  "LENGTH" ws "(" ws expr:arr ws ")" ws {LengthOperator(:arr)};
+concatOperation =  "CONCAT" ws "(" ws expr:arr1 ws comma ws expr:arr2 ws ")" ws {ConcatOperator(:arr1, :arr2)};
+varDecl = "VAR" ws var:vName ws ":" ws nemoType:t ws ";" ws {VarDecl(:vName, :t)};
 
-varDecl = "VAR" var:vName ":" nemoType:t  {varDecl(:vName, :t)};
+nemoType = intType {IntType()} | ws "[" ws nemoType:t ws "]" ws {ArrayType(:t)};
 
-nemoType = intType {intType()} | "[" ws nemoType:t ws "]" {ArrayType(:t)};
-
-intType = "int";
+intType = "int" | "INT";
 
 lowPrior = hightPrior:head (add | sub)*:tail {buildLow(:head, :tail)};
 add = ws '+' ws hightPrior:high {ToAdd(:high)};
@@ -50,14 +52,14 @@ token = unary | inPar | atom;
 unary = '-' ws token:e ws {Neg(:e)};
 inPar = '(' ws expr:e ws ')' ws {:e};
 
-arrExpr = "[" expr:firstExpr (comma expr:s {:s})*:secondAction "]" {consArray(:firstExpr, :secondAction)} 
-| "[" ws "]" {consArray()};
+arrExpr = ws "[" ws expr:firstExpr ws (comma ws expr:s {:s})*:secondAction ws "]" ws {Array(consArray(:firstExpr, :secondAction))} 
+| "[" ws "]" {Array(emptyArray())};
 
 atom = int:i ws {:i} | var:v ws {:v} | arrayOperation;
 
 
 int = digit+$d {IntConst(s2i($d))};
-var = letter+$v {Var($v)};
+var = (letter (letter | digit)*)$n {Var($n)};
 digit = '0' - '9';
 letter = 'a' - 'z';
 comma = ",";
