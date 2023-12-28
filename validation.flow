@@ -1,10 +1,10 @@
-import grammar;
+import nemo_grammar;
 import ds/tree;
 
 export {
     ValidateMessage(error: bool, msg: string);
 
-    validate(program : Program) -> ValidateMessage;
+    validate(program : NemoProgram) -> ValidateMessage;
 }
 
 createSuccessMessage() -> ValidateMessage {
@@ -298,7 +298,7 @@ validateBody(body : Body, varTypes : Tree<string, NemoType>) {
     }
 }
 
-validate(program : Program) -> ValidateMessage {
+validate(program : NemoProgram) -> ValidateMessage {
     varDeclList = program.varDeclList;
 
     varDeclListValidationMessage = validateVarDeclList(varDeclList);

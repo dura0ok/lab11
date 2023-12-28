@@ -1,8 +1,8 @@
 import lingo/pegcode/driver;
-import grammar;
+import nemo_grammar;
 
 export {
-    parse(src : string) -> Program;
+    parse(src : string) -> NemoProgram;
 }
 
 ToMul(arg : ArithmeticExpr);
@@ -55,6 +55,6 @@ specialPegActions = {
 
 grammarOp = compilePegGrammar("#include nemo.lingo");
 
-parse(src : string) -> Program {
+parse(src : string) -> NemoProgram {
     parsic(grammarOp, src, specialPegActions);
 }

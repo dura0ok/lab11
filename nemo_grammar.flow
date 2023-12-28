@@ -57,5 +57,5 @@ export {
     
     VarDecl(var: Var, type: NemoType);
 
-    Program(varDeclList: [VarDecl], body: Body);
+    NemoProgram(varDeclList: [VarDecl], body: Body);
 }

@@ -1,12 +1,16 @@
 import string;
-import grammar;
+import nemo_grammar;
 import parsing;
 import validation;
+import translation;
+import execution;
 
 main() {
     p = parse("
-        VAR x : [[INT]];
-         x:= UPD(x, 0, 1);
+        VAR x : INT; VAR y : INT; VAR z : INT;
+        x := 0;
+        y := 13;
+        z := x + y;
     ");
 
 
@@ -14,7 +18,13 @@ main() {
 
     if (p != flow("PARSING FAILED")) {
         validateMessage = validate(p);
-        println(validateMessage);
+        if(validateMessage.error) {
+            println(validateMessage.msg);
+        } else {
+            vm = translate(p);
+            println(vm);
+            execute(vm);
+        }
     }
 
     quit(0);

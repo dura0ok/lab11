@@ -1,4 +1,4 @@
-programm = ws varDecl*:d ws body:a ws { Program(:d, :a) };
+programm = ws varDecl*:d ws body:a ws { NemoProgram(:d, :a) };
 body = statement;
 statement = (ws alternative:a ws ';' {:a})*:as {BodiesSeq(:as)};
 alternative = bodyTerm:first nonDetermenisticChoice:other {buildChoice(:first, :other)};
