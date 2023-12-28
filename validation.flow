@@ -118,13 +118,16 @@ getTypeOfArray(array: Array, varTypes : Tree<string, NemoType>) -> NemoType {
     if(length(array.elements) == 0) {
         ArrayType(AnyType());
     } else {
-        elementsTypes = map(array.elements, \el -> getExprType(el, varTypes));        
+        elementsTypes = map(array.elements, \el -> getExprType(el, varTypes));   
+
         if(contains(elementsTypes, NoneType())) {
             NoneType();
         } else {
-            if(forall(elementsTypes, \el -> areTypesSimilar(elementsTypes[0], el))){
+            if (forall(elementsTypes, \el -> elementsTypes[0] == el)) {
+                ArrayType(elementsTypes[0]);
+            } else if (forall(elementsTypes, \el -> areTypesSimilar(elementsTypes[0], el))) {
                 chooseMostSpecificArrayType(elementsTypes);
-            }else{
+            } else {
                 NoneType();
             }
         }
@@ -190,8 +193,6 @@ getExprType(expr : Expr, varTypes : Tree<string, NemoType>) -> NemoType {
 
         ArrayOperator(): getTypeOfArrayOperator(expr, varTypes);
     }
-
-    IntType();
 }
 
 isCondValid(cond: Cond, varTypes : Tree<string, NemoType>) -> bool {
@@ -296,70 +297,6 @@ validateBody(body : Body, varTypes : Tree<string, NemoType>) {
         }
     }
 }
-
-// findVarType(decls: [VarDecl], var: Var) {
-//     eitherMap(
-//         find(decls, \el -> el.var == var),
-//         \decl -> decl.type,
-//         NoneType()
-//     );
-// }
-
-// getExprType(decls: [VarDecl], e: Expr) -> NemoType{
-//     switch (e: Expr) {
-//         IntConst(v):{
-//             IntType();
-//         }
-
-//         Var(v):{
-//             findVarType(decls, e);
-//         }
-
-//         ArithmeticExpr():{
-//             IntType();
-//         }
-//     }
-// }
-
-// findFirstError(messages: [ValidateMessage]) -> ValidateMessage{
-//     fold(messages, ValidateMessage(false, "success"), \acc, el -> {
-//         if(acc.error){
-//             acc;
-//         }else{
-//             if(el.error){
-//                 el;
-//             }else{
-//                 acc;
-//             }
-//         }
-//     }); 
-
-// }
-
-// validateTypes(decls: [VarDecl], b: Body) -> ValidateMessage{
-//     println(decls);
-//     println(b);
-//     println(findVarType(decls, Var("x")));
-//     switch (b : Body) {
-//         Assignment(name, expr): {
-//             println("=========");
-//             println(name);
-//             println("=========");
-//             if(findVarType(decls, name) == getExprType(decls, expr)){
-//                 ValidateMessage(false, "success!!");
-//             }else{
-//                 ValidateMessage(true, "error!");
-//             }
-//         }
-//         BodiesSeq(bodies): {
-//             results = map(bodies, \el -> validateTypes(decls, el));
-//             findFirstError(results);
-//         }
-//         default: {
-//             ValidateMessage(false, "success!!!!!!");
-//         }
-//     }
-// }
 
 validate(program : Program) -> ValidateMessage {
     varDeclList = program.varDeclList;

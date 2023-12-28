@@ -5,8 +5,8 @@ import validation;
 
 main() {
     p = parse("
-        VAR x : [INT];
-         x:= [];
+        VAR x : [[INT]];
+         x:= UPD(x, 0, 1);
     ");
 
 
