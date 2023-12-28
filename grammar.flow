@@ -1,0 +1,60 @@
+export {
+    IntType();
+    ArrayType(type: NemoType);
+    NoneType(); 
+    AnyType();
+    NemoType ::= IntType, ArrayType, NoneType, AnyType;
+
+
+    IntConst(value : int);
+    Const ::= IntConst;
+
+    Var(name : string);
+
+    
+    AddOperationType();
+    SubOperationType();
+    MulOperationType();
+    DivOperationType();
+    BinaryOperationType ::= AddOperationType, SubOperationType, MulOperationType, DivOperationType;
+    BinaryOperation(l : Expr, r : Expr, operationType : BinaryOperationType);
+
+    Neg(arg : Expr);
+    ArithmeticExpr ::= BinaryOperation, Neg;
+
+    Array(elements: [Expr]);
+
+    UpdOperator(arr: Array, index: Expr, val: Expr);
+    AppOperator(arr: Array, val: Expr);
+    LengthOperator(arr: Array);
+    ConcatOperator(arr1: Array, arr2: Array);
+    ArrayOperator ::= UpdOperator, AppOperator, LengthOperator, ConcatOperator;
+
+    Expr ::= Const, Var, ArithmeticExpr, Array, ArrayOperator;
+
+
+    LessOperator();
+    LessEqualOperator();
+    CmpOperator ::= LessOperator, LessEqualOperator;
+    Comparison(e1: Expr, e2: Expr, cmpType: CmpOperator);
+
+    Or(c1 : Cond, c2 : Cond);
+    And(c1 : Cond, c2 : Cond);
+    Not(c : Cond);
+    LogicOperator ::= Or, And, Not;
+
+    Cond ::= LogicOperator, Comparison;
+
+
+    Print(e: Expr);
+    Assignment(varName: Var, e: Expr);
+    BodiesSeq(bodies: [Body]);
+    Test(c : Cond);
+    NonDeterministicIteration(body: Body);
+    NonDeterministicChoice(bodies: [Body]);
+    Body ::= Print, Assignment, BodiesSeq, Test, NonDeterministicIteration, NonDeterministicChoice;
+    
+    VarDecl(var: Var, type: NemoType);
+
+    Program(varDeclList: [VarDecl], body: Body);
+}

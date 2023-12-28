@@ -1,5 +1,4 @@
 programm = ws varDecl*:d ws body:a ws { Program(:d, :a) };
-// programm = body:a ws { Program(:d, :a) };
 body = statement;
 statement = (ws alternative:a ws ';' {:a})*:as {BodiesSeq(:as)};
 alternative = bodyTerm:first nonDetermenisticChoice:other {buildChoice(:first, :other)};
@@ -40,11 +39,11 @@ nemoType = intType {IntType()} | ws "[" ws nemoType:t ws "]" ws {ArrayType(:t)};
 
 intType = "int" | "INT";
 
-lowPrior = hightPrior:head (add | sub)*:tail {buildLow(:head, :tail)};
+lowPrior = hightPrior:head (add | sub)*:tail {buildBinaryArithmOp(:head, :tail)};
 add = ws '+' ws hightPrior:high {ToAdd(:high)};
 sub = ws '-' ws hightPrior:high {ToSub(:high)};
 
-hightPrior = token:head (mul | div)*:tail {buildHigh(:head, :tail)};
+hightPrior = token:head (mul | div)*:tail {buildBinaryArithmOp(:head, :tail)};
 mul = '*' ws token:t {ToMul(:t)};
 div = '/' ws token:t {ToDiv(:t)};
 

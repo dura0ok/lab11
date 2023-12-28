@@ -1,0 +1,225 @@
+import grammar;
+import ds/tree;
+
+export {
+    ValidateMessage(error: bool, msg: string);
+
+    validate(program : Program) -> ValidateMessage;
+}
+
+createSuccessMessage() -> ValidateMessage {
+    ValidateMessage(false, "Success");
+}
+
+createErrorMessage(msg : string) -> ValidateMessage {
+    ValidateMessage(true, msg);
+}
+
+getTypeOfConst(c: Const) -> NemoType{
+    switch (c) {
+        IntConst(v): {
+            IntType();
+        }
+    }
+}
+
+getTypeOfVar(v : Var, varTypes : Tree<string, NemoType>) -> NemoType {
+    lookupTreeDef(varTypes, v.name, NoneType());
+}
+
+getTypeOfArithmeticExpr(arithmeticExpr : ArithmeticExpr, varTypes : Tree<string, NemoType>) {
+    switch (arithmeticExpr) {
+        BinaryOperation(l, r, binType): {
+            leftType = getExprType(l, varTypes);
+            rightType = getExprType(r, varTypes);
+            if(leftType != rightType || leftType == NoneType() || rightType == NoneType()) {
+                NoneType();
+            } else if(leftType != IntType()) {
+                NoneType();
+            } else {
+                leftType;
+            }             
+       }
+
+       Neg(e): {
+         if( getExprType(e, varTypes) != IntType() ) {
+            NoneType()
+         } else {
+            IntType();
+         }
+       }
+    }
+}
+
+areTypesSimilar(t1: NemoType, t2: NemoType) -> bool {
+    if(t1 == t2) {
+        true
+    } else {
+        switch(t1){
+            ArrayType(baseType1): {
+                switch(t2) {1
+                    ArrayType(baseType2): {
+                        switch(baseType1) {
+                            AnyType(): {
+                                true
+                            }
+                            default: {
+                                switch(baseType2) {
+                                    AnyType(): {
+                                        true
+                                    }
+                                    default: {
+                                        false
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    default: {
+                        false;
+                    }
+                }
+            }
+            default: {
+                false;
+            }  
+        }
+    }
+}
+
+getTypeOfArray(array: Array, varTypes : Tree<string, NemoType>) -> NemoType {
+    if(length(array.elements) == 0) {
+        ArrayType(AnyType());
+    } else {
+        elementsTypes = map(array.elements, \el -> getExprType(el, varTypes));        
+        if(contains(elementsTypes, NoneType())) {
+            NoneType();
+        } else if()
+    }
+}
+
+getExprType(expr : Expr, varTypes : Tree<string, NemoType>) -> NemoType {
+    switch (expr) {
+        Const(): getTypeOfConst(expr);
+
+        Var(name):  getTypeOfVar(expr, varTypes);
+
+        ArithmeticExpr(): getTypeOfArithmeticExpr(expr, varTypes);
+
+        Array(elements): getTypeOfArray(expr, varTypes);
+    
+        default: NoneType();
+    }
+
+    IntType();
+}
+
+validateVarDeclList(varDeclList : [VarDecl]) -> ValidateMessage {
+     vars: Tree<string, int> = fold(
+        varDeclList,
+        makeTree(),
+        \acc, decl -> {
+            varName = decl.var.name;
+            incTreeValue(acc, varName);
+        }
+    );
+
+    foldTree(
+        vars,
+        createSuccessMessage(),
+        \k, v, acc -> {
+            if (acc.error || v == 1) {
+                acc;
+            } else {
+                createErrorMessage("Redeclaration of " + k);
+            }
+        }
+    );
+}
+
+validateBody(body : Body, varTypes : Tree<string, NemoType>) {
+    println(body);
+    createSuccessMessage();
+}
+
+// findVarType(decls: [VarDecl], var: Var) {
+//     eitherMap(
+//         find(decls, \el -> el.var == var),
+//         \decl -> decl.type,
+//         NoneType()
+//     );
+// }
+
+// getExprType(decls: [VarDecl], e: Expr) -> NemoType{
+//     switch (e: Expr) {
+//         IntConst(v):{
+//             IntType();
+//         }
+
+//         Var(v):{
+//             findVarType(decls, e);
+//         }
+
+//         ArithmeticExpr():{
+//             IntType();
+//         }
+//     }
+// }
+
+// findFirstError(messages: [ValidateMessage]) -> ValidateMessage{
+//     fold(messages, ValidateMessage(false, "success"), \acc, el -> {
+//         if(acc.error){
+//             acc;
+//         }else{
+//             if(el.error){
+//                 el;
+//             }else{
+//                 acc;
+//             }
+//         }
+//     }); 
+
+// }
+
+// validateTypes(decls: [VarDecl], b: Body) -> ValidateMessage{
+//     println(decls);
+//     println(b);
+//     println(findVarType(decls, Var("x")));
+//     switch (b : Body) {
+//         Assignment(name, expr): {
+//             println("=========");
+//             println(name);
+//             println("=========");
+//             if(findVarType(decls, name) == getExprType(decls, expr)){
+//                 ValidateMessage(false, "success!!");
+//             }else{
+//                 ValidateMessage(true, "error!");
+//             }
+//         }
+//         BodiesSeq(bodies): {
+//             results = map(bodies, \el -> validateTypes(decls, el));
+//             findFirstError(results);
+//         }
+//         default: {
+//             ValidateMessage(false, "success!!!!!!");
+//         }
+//     }
+// }
+
+validate(program : Program) -> ValidateMessage {
+    varDeclList = program.varDeclList;
+
+    varDeclListValidationMessage = validateVarDeclList(varDeclList);
+    if (varDeclListValidationMessage.error) {
+        varDeclListValidationMessage;
+    } else {
+        validateBody(
+            program.body,
+            fold(
+                varDeclList,
+                makeTree(),
+                \acc, decl -> setTree(acc, decl.var.name, decl.type)
+            )
+        );
+    }
+}
