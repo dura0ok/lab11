@@ -57,7 +57,7 @@ areTypesSimilar(t1: NemoType, t2: NemoType) -> bool {
     } else {
         switch(t1){
             ArrayType(baseType1): {
-                switch(t2) {1
+                switch(t2) {
                     ArrayType(baseType2): {
                         switch(baseType1) {
                             AnyType(): {
@@ -87,6 +87,33 @@ areTypesSimilar(t1: NemoType, t2: NemoType) -> bool {
     }
 }
 
+chooseMostSpecificArrayType2(t1 : NemoType, t2 : NemoType) -> NemoType {
+    switch (t1) {
+        ArrayType(bt1) : {
+            if (bt1 != AnyType()) {
+                t1;
+            } else {
+                switch (t2) {
+                    ArrayType(bt2) : {
+                        t2;
+                    }
+                    
+                    default : NoneType()
+                }
+            }
+        }
+        
+        default : NoneType();
+    }
+}
+
+chooseMostSpecificArrayType(ts : [NemoType]) -> NemoType {
+    fold(ts, ArrayType(AnyType()), \acc, t -> {
+        chooseMostSpecificArrayType2(acc, t);
+    });
+}
+
+
 getTypeOfArray(array: Array, varTypes : Tree<string, NemoType>) -> NemoType {
     if(length(array.elements) == 0) {
         ArrayType(AnyType());
@@ -94,7 +121,60 @@ getTypeOfArray(array: Array, varTypes : Tree<string, NemoType>) -> NemoType {
         elementsTypes = map(array.elements, \el -> getExprType(el, varTypes));        
         if(contains(elementsTypes, NoneType())) {
             NoneType();
-        } else if()
+        } else {
+            if(forall(elementsTypes, \el -> areTypesSimilar(elementsTypes[0], el))){
+                chooseMostSpecificArrayType(elementsTypes);
+            }else{
+                NoneType();
+            }
+        }
+    }
+}
+
+getTypeOfArrayOperator(arrayOp: ArrayOperator, varTypes : Tree<string, NemoType>) -> NemoType {
+    switch (arrayOp) {
+        UpdOperator(arr, ind, val): {
+            if(areTypesSimilar(getExprType(arr, varTypes), ArrayType(getExprType(val, varTypes))) && getExprType(ind, varTypes) == IntType()) {
+                // TODO VYNESTI
+                chooseMostSpecificArrayType([getExprType(arr, varTypes), ArrayType(getExprType(val, varTypes))]);
+            } else {
+                NoneType();
+            }
+        }
+
+        AppOperator(arr, ind): {
+            switch(getExprType(arr, varTypes)){
+                ArrayType(b): {
+                    if(getExprType(ind, varTypes) == IntType()){
+                        b;
+                    }else{
+                        NoneType();
+                    }
+                }
+                default: {
+                    NoneType();
+                }
+            }
+        }
+        
+        ConcatOperator(arr1, arr2): {
+            if(areTypesSimilar(getExprType(arr1, varTypes), getExprType(arr2, varTypes))){
+                chooseMostSpecificArrayType([getExprType(arr1, varTypes), getExprType(arr2, varTypes)]);
+            }else{
+                NoneType();
+            }
+        }
+
+        LengthOperator(arr1): {
+            switch (getExprType(arr1, varTypes)) {
+                ArrayType(baseType): {
+                    IntType();
+                }
+                default: {
+                    NoneType();
+                }
+            }
+        }
     }
 }
 
@@ -107,8 +187,8 @@ getExprType(expr : Expr, varTypes : Tree<string, NemoType>) -> NemoType {
         ArithmeticExpr(): getTypeOfArithmeticExpr(expr, varTypes);
 
         Array(elements): getTypeOfArray(expr, varTypes);
-    
-        default: NoneType();
+
+        ArrayOperator(): getTypeOfArrayOperator(expr, varTypes);
     }
 
     IntType();

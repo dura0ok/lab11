@@ -24,10 +24,10 @@ export {
 
     Array(elements: [Expr]);
 
-    UpdOperator(arr: Array, index: Expr, val: Expr);
-    AppOperator(arr: Array, val: Expr);
-    LengthOperator(arr: Array);
-    ConcatOperator(arr1: Array, arr2: Array);
+    UpdOperator(arr: Expr, index: Expr, val: Expr);
+    AppOperator(arr: Expr, ind: Expr);
+    LengthOperator(arr: Expr);
+    ConcatOperator(arr1: Expr, arr2: Expr);
     ArrayOperator ::= UpdOperator, AppOperator, LengthOperator, ConcatOperator;
 
     Expr ::= Const, Var, ArithmeticExpr, Array, ArrayOperator;
