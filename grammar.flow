@@ -35,7 +35,8 @@ export {
 
     LessOperator();
     LessEqualOperator();
-    CmpOperator ::= LessOperator, LessEqualOperator;
+    EqualOperator();
+    CmpOperator ::= LessOperator, LessEqualOperator, EqualOperator;
     Comparison(e1: Expr, e2: Expr, cmpType: CmpOperator);
 
     Or(c1 : Cond, c2 : Cond);
@@ -47,7 +48,7 @@ export {
 
 
     Print(e: Expr);
-    Assignment(varName: Var, e: Expr);
+    Assignment(var: Var, e: Expr);
     BodiesSeq(bodies: [Body]);
     Test(c : Cond);
     NonDeterministicIteration(body: Body);

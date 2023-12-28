@@ -194,6 +194,31 @@ getExprType(expr : Expr, varTypes : Tree<string, NemoType>) -> NemoType {
     IntType();
 }
 
+isCondValid(cond: Cond, varTypes : Tree<string, NemoType>) -> bool {
+    switch (cond) {
+        Comparison(l, r, cmpType) : {
+            lType = getExprType(l, varTypes);
+            rType = getExprType(r, varTypes);
+
+            if (lType == NoneType() || rType == NoneType() || !areTypesSimilar(rType, lType)) {
+                false;
+            } else {
+                switch (cmpType) {
+                    EqualOperator() : true;
+                    default: {
+                        lType == IntType();
+                    }
+
+                }
+            }
+        }
+
+        LogicOperator() : {
+            isCondValid(cond, varTypes);
+        }
+    }
+}
+
 validateVarDeclList(varDeclList : [VarDecl]) -> ValidateMessage {
      vars: Tree<string, int> = fold(
         varDeclList,
@@ -217,9 +242,59 @@ validateVarDeclList(varDeclList : [VarDecl]) -> ValidateMessage {
     );
 }
 
+validateBodies(bodies: [Body], varTypes : Tree<string, NemoType>) -> ValidateMessage {
+    fold(
+        bodies, 
+        createSuccessMessage(),
+        \acc, b -> {
+            if (acc.error) {
+                acc;
+            } else {
+                validateBody(b, varTypes);
+            }
+        }
+    );
+}
+
 validateBody(body : Body, varTypes : Tree<string, NemoType>) {
-    println(body);
-    createSuccessMessage();
+    switch (body) {
+        Assignment(v, e) : {
+            if(getTypeOfVar(v, varTypes) == NoneType()) {
+                createErrorMessage("Variable " + v.name + " is undeclared :(");
+            }else if(areTypesSimilar(getTypeOfVar(v, varTypes), getExprType(e, varTypes))) {
+                createSuccessMessage();
+            }else{
+                createErrorMessage(":( Types mismatch " + v.name + " and " + toString(e));
+            }
+        }
+        Print(e): {
+            if(getExprType(e, varTypes) != NoneType()) {
+                createSuccessMessage();
+            }else{
+                createErrorMessage(":( Cannot determine type of expressing in print :(");
+            }
+        }
+
+        BodiesSeq(bodies): {
+            validateBodies(bodies, varTypes);
+        }
+
+        Test(c): {
+            if(isCondValid(c, varTypes)) {
+                createSuccessMessage();
+            }else{
+                createErrorMessage(":( Incorrect cond " + toString(c));
+            }
+        }
+
+        NonDeterministicIteration(b): {
+            validateBody(b, varTypes);
+        }
+
+        NonDeterministicChoice(bodies): {
+            validateBodies(bodies, varTypes);
+        }
+    }
 }
 
 // findVarType(decls: [VarDecl], var: Var) {
